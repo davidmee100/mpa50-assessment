@@ -602,6 +602,9 @@
       }
     }
   </style>
+
+  <!-- Include Supabase JS library for database interactions -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 </head>
 <body>
   <div class="container">
@@ -960,6 +963,25 @@
     // remains null.
     const urlParams = new URLSearchParams(window.location.search);
     const campaignParam = urlParams.get('campaign');
+    // Extract token from the URL or generate a new one. Each candidate has a unique
+    // token used to identify their responses anonymously. If no token is provided
+    // in the query string, generate a UUID and update the URL so the token persists
+    // across page reloads or navigation.
+    const tokenParam = urlParams.get('token');
+    let candidateToken = tokenParam;
+    if (!candidateToken) {
+      candidateToken = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : Math.random().toString(36).substring(2) + Date.now().toString(36);
+      const newParams = new URLSearchParams(window.location.search);
+      newParams.set('token', candidateToken);
+      history.replaceState(null, '', `${window.location.pathname}?${newParams.toString()}`);
+    }
+
+    // Initialize Supabase client. Insert your own Supabase project URL and anon key
+    // here. These placeholders must be replaced with actual values from your
+    // Supabase project settings (Settings → API → Project URL and Anon Key).
+    const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+    const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     let currentPage = 0;
     let responses = {};
     let candidateData = {};
@@ -1013,7 +1035,7 @@
       document.getElementById('screen-info').classList.remove('hidden');
     }
 
-    function handleCandidateInfo(e) {
+    async function handleCandidateInfo(e) {
       e.preventDefault();
       // Build candidate data object. In addition to name, email, position and experience,
       // include the campaign parameter if provided in the link. This enables the admin
@@ -1021,13 +1043,24 @@
       // without requiring the candidate to re-enter this information. If no campaign was
       // specified, the field will be undefined.
       candidateData = {
+        token: candidateToken,
         name: document.getElementById('candidate-name').value,
         email: document.getElementById('candidate-email').value,
         position: document.getElementById('candidate-position').value,
         experience: document.getElementById('candidate-experience').value,
         timestamp: new Date().toISOString(),
-        campaign: campaignParam || undefined
+        campaign: campaignParam || undefined,
+        progress: 0,
+        completed: false,
+        scores: null
       };
+      // Persist candidate info to the Supabase back end. Ignore any errors so the
+      // assessment continues even if the network call fails (e.g., offline use).
+      try {
+        await supabaseClient.from('candidates').insert([candidateData]);
+      } catch (error) {
+        console.error('Supabase candidate insert error:', error);
+      }
       hideAllScreens();
       document.getElementById('screen-instructions').classList.remove('hidden');
     }
@@ -1098,6 +1131,14 @@
             if (!itemLatencies[questionNum]) {
               itemLatencies[questionNum] = Date.now() - pageStartTime;
             }
+            // Persist individual responses to Supabase for progress tracking.
+            try {
+              supabaseClient.from('responses').insert([
+                { token: candidateToken, question_index: questionNum, answer: parseInt(this.value) }
+              ]);
+            } catch (error) {
+              console.error('Supabase response insert error:', error);
+            }
           });
         }
       }
@@ -1122,7 +1163,7 @@
       }
     }
 
-    function nextPage() {
+    async function nextPage() {
       // Validate current page responses
       const itemsPerPage = 5;
       const startIdx = currentPage * itemsPerPage;
@@ -1138,9 +1179,21 @@
       currentPage++;
       pageStartTime = Date.now();
       renderQuestions();
+
+      // Update progress in back end (number of questions answered). Use a
+      // try/catch to avoid interrupting user flow if the network is unavailable.
+      try {
+        const itemsPerPage = 5;
+        const newProgress = Math.min(currentPage * itemsPerPage, MPA50_QUESTIONS.length);
+        await supabaseClient.from('candidates')
+          .update({ progress: newProgress })
+          .eq('token', candidateToken);
+      } catch (error) {
+        console.error('Supabase progress update error:', error);
+      }
     }
 
-    function submitAssessment() {
+    async function submitAssessment() {
       // Validate all responses
       for (let i = 1; i <= MPA50_QUESTIONS.length; i++) {
         if (!responses[i]) {
@@ -1161,7 +1214,21 @@
         completedAt: new Date().toISOString(),
         id: generateId()
       };
-      
+
+      // Update candidate row in Supabase with completion info and scores
+      try {
+        await supabaseClient.from('candidates')
+          .update({
+            completed: true,
+            scores: scores,
+            progress: MPA50_QUESTIONS.length,
+            completedAt: result.completedAt
+          })
+          .eq('token', candidateToken);
+      } catch (error) {
+        console.error('Supabase final update error:', error);
+      }
+
       saveResult(result);
       
       // Show thank you screen
