@@ -952,6 +952,14 @@
     };
 
     // Global state
+
+    // Capture campaign role from URL query parameter (e.g., ?campaign=production-operator). This
+    // allows a job role or campaign identifier to be passed with the assessment link. The
+    // captured value is stored globally and later added to candidateData so it can be
+    // referenced in admin reporting. If the URL does not include a campaign parameter, this
+    // remains null.
+    const urlParams = new URLSearchParams(window.location.search);
+    const campaignParam = urlParams.get('campaign');
     let currentPage = 0;
     let responses = {};
     let candidateData = {};
@@ -963,6 +971,22 @@
     function init() {
       document.getElementById('candidate-form').addEventListener('submit', handleCandidateInfo);
       loadStoredResults();
+
+      // If a campaign parameter was provided, pre-select the corresponding option in
+      // the position dropdown. This allows job-specific links to automatically set
+      // the role in the candidate form. We wait until the DOM is loaded (init runs
+      // after DOMContentLoaded) so the select element exists.
+      if (campaignParam) {
+        const positionSelect = document.getElementById('candidate-position');
+        if (positionSelect) {
+          // Only set the value if the option exists in the dropdown. If an invalid
+          // campaign is passed it will not affect the dropdown.
+          const optionExists = Array.from(positionSelect.options).some(opt => opt.value === campaignParam);
+          if (optionExists) {
+            positionSelect.value = campaignParam;
+          }
+        }
+      }
     }
 
     // Screen navigation
@@ -991,12 +1015,18 @@
 
     function handleCandidateInfo(e) {
       e.preventDefault();
+      // Build candidate data object. In addition to name, email, position and experience,
+      // include the campaign parameter if provided in the link. This enables the admin
+      // dashboard to associate a submission with a specific job role or hiring campaign
+      // without requiring the candidate to re-enter this information. If no campaign was
+      // specified, the field will be undefined.
       candidateData = {
         name: document.getElementById('candidate-name').value,
         email: document.getElementById('candidate-email').value,
         position: document.getElementById('candidate-position').value,
         experience: document.getElementById('candidate-experience').value,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        campaign: campaignParam || undefined
       };
       hideAllScreens();
       document.getElementById('screen-instructions').classList.remove('hidden');
@@ -1358,10 +1388,11 @@
           <h3>Individual Results</h3>
           <table>
             <thead>
-              <tr>
+            <tr>
                 <th>ID</th>
                 <th>Name</th>
                 <th>Position</th>
+                <th>Campaign</th>
                 <th>Date</th>
                 <th>WEI</th>
                 <th>Risk Level</th>
@@ -1385,6 +1416,7 @@
               <td>${result.id}</td>
               <td>${result.name}</td>
               <td>${result.position || 'N/A'}</td>
+              <td>${result.campaign || 'N/A'}</td>
               <td>${date}</td>
               <td>${result.scores.WEI.value}</td>
               <td><span class="risk-indicator risk-${result.scores.riskLevel.toLowerCase()}">${riskDisplay}</span></td>
@@ -1442,6 +1474,13 @@
         }
       }
       const aggregatedQuestions = Array.from(aggregatedQuestionsSet);
+      // Limit the list of follow‑up questions to the five most relevant items. By slicing
+      // the aggregated array to the first five entries, we provide hiring managers with
+      // a concise set of interview prompts focused on the candidate's most critical
+      // strengths or weaknesses.
+      const topQuestions = aggregatedQuestions.slice(0, 5);
+      // Capture additional interview questions beyond the top five.
+      const extraQuestions = aggregatedQuestions.slice(5, 10);
 
       let html = '';
       html += `<h2>Candidate Report</h2>`;
@@ -1471,6 +1510,7 @@
         <tr><td><strong>Name:</strong></td><td>${result.name}</td></tr>
         <tr><td><strong>Email:</strong></td><td>${result.email || 'N/A'}</td></tr>
         <tr><td><strong>Position:</strong></td><td>${result.position || 'N/A'}</td></tr>
+        <tr><td><strong>Campaign:</strong></td><td>${result.campaign || 'N/A'}</td></tr>
         <tr><td><strong>Experience:</strong></td><td>${result.experience || 'N/A'}</td></tr>
         <tr><td><strong>Assessment Date:</strong></td><td>${new Date(result.completedAt).toLocaleString()}</td></tr>
         <tr><td><strong>Duration:</strong></td><td>${result.duration} seconds</td></tr>
@@ -1503,11 +1543,22 @@
       html += `</div>`;
 
       // Aggregated interview questions section
-      if (aggregatedQuestions.length > 0) {
-        html += `<div class="report-section"><h3>Interview Questions & Areas to Explore</h3>`;
-        html += `<p>Based on the candidate's responses, consider exploring the following topics during the interview:</p>`;
+      if (topQuestions.length > 0) {
+        html += `<div class="report-section"><h3>Top Interview Questions</h3>`;
+        html += `<p>Use the following tailored questions to explore the candidate's most noteworthy areas based on their assessment responses:</p>`;
         html += `<ul>`;
-        aggregatedQuestions.forEach(q => {
+        topQuestions.forEach(q => {
+          html += `<li>${q}</li>`;
+        });
+        html += `</ul></div>`;
+      }
+      // If there are more interview questions available beyond the top five,
+      // provide an additional section to explore them.
+      if (extraQuestions.length > 0) {
+        html += `<div class="report-section"><h3>Additional Interview Questions</h3>`;
+        html += `<p>If time permits, explore these additional topics for deeper insights:</p>`;
+        html += `<ul>`;
+        extraQuestions.forEach(q => {
           html += `<li>${q}</li>`;
         });
         html += `</ul></div>`;
