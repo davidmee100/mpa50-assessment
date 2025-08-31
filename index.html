@@ -730,16 +730,22 @@
       </div>
     </div>
     
-    <!-- Admin Login -->
-    <div id="screen-admin-login" class="card hidden">
-      <h2>Administrator Access</h2>
-      <p style="margin-bottom: 20px;">Enter administrator password to access candidate results.</p>
-      <input type="password" id="admin-password" placeholder="Enter password">
-      <div style="text-align: center;">
-        <button class="btn btn-secondary" onclick="showStart()">Cancel</button>
-        <button class="btn btn-primary" onclick="adminLogin()">Login</button>
-      </div>
-    </div>
+<!-- Admin Login -->
+<div id="screen-admin-login" class="card hidden">
+  <h2>Administrator Login</h2>
+  <p style="margin-bottom: 20px;">Enter your admin email and password:</p>
+
+  <input type="email" id="admin-email" placeholder="Email">
+  <input type="password" id="admin-password" placeholder="Password">
+
+  <div style="text-align: center;">
+    <button class="btn btn-secondary" onclick="showStart()">Cancel</button>
+    <button class="btn btn-primary" onclick="adminSignIn()">Sign In</button>
+  </div>
+
+  <p id="admin-login-msg" style="margin-top:12px; color:#4a5568;"></p>
+</div>
+
     
     <!-- Admin Dashboard -->
     <div id="screen-dashboard" class="card hidden">
@@ -761,6 +767,14 @@
       </div>
     </div>
   </div>
+function adminLogin() {
+  const password = document.getElementById('admin-password').value;
+  if (password === 'mpa50admin') {  // Change this password
+    showDashboard();
+  } else {
+    alert('Incorrect password');
+  }
+}
 
   <script>
     // MPA-50 Questions (exact from the scientifically-backed assessment)
@@ -1401,6 +1415,31 @@ await supabase.functions.invoke('on_complete', {
 
     // Admin functions
     function showAdminLogin() {
+      async function adminSignIn() {
+  const email = document.getElementById('admin-email').value.trim();
+  const password = document.getElementById('admin-password').value;
+
+  // Basic front-end validation
+  if (!email || !password) {
+    document.getElementById('admin-login-msg').textContent = 'Please enter both email and password.';
+    return;
+  }
+
+  // IMPORTANT: use your initialized supabase client name: supabaseClient
+  const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+
+  // Show result to the user
+  document.getElementById('admin-login-msg').textContent = error ? error.message : 'Signed in';
+
+  // On success, go to the dashboard
+  if (!error) {
+    hideAllScreens();
+    document.getElementById('screen-dashboard').classList.remove('hidden');
+    // Optional: refresh dashboard content now that we’re authenticated
+    showDashboard();
+  }
+}
+
       hideAllScreens();
       document.getElementById('screen-admin-login').classList.remove('hidden');
     }
@@ -2143,21 +2182,22 @@ await supabase.functions.invoke('on_complete', {
     // Expose key functions globally so inline onclick handlers work correctly.
     // Without this assignment, some browsers may not find the functions in
     // the global scope when called via inline attributes on buttons.
-    Object.assign(window, {
-      startAssessment,
-      showCandidateInfo,
-      showStart,
-      beginAssessment,
-      previousPage,
-      nextPage,
-      submitAssessment,
-      showAdminLogin,
-      adminLogin,
-      showDashboard,
-      viewReport,
-      exportResults,
-      clearAllData
-    });
+Object.assign(window, {
+  startAssessment,
+  showCandidateInfo,
+  showStart,
+  beginAssessment,
+  previousPage,
+  nextPage,
+  submitAssessment,
+  showAdminLogin,
+  adminSignIn,         // <-- add this
+  showDashboard,
+  viewReport,
+  exportResults,
+  clearAllData
+});
+
 
     // Ensure the start screen is visible on initial load. In some cases the
     // start card could remain hidden when reloading after completing an
