@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MPA-50: Manufacturing Personality Assessment</title>
+  <!-- Updated title to reflect new name -->
+  <title>Culture Fit Assessment</title>
   <style>
     /* Enhanced Professional Styling */
     * {
@@ -610,16 +611,17 @@
   <div class="container">
     <!-- Header -->
     <div class="card" id="header-card">
-      <h1>MPA-50</h1>
-      <p class="subtitle">Manufacturing Personality Assessment</p>
+    <!-- Updated main heading to new assessment name -->
+    <h1>Culture Fit Assessment</h1>
+      <p class="subtitle">Culture Fit Assessment</p>
     </div>
     
     <!-- Start Screen -->
     <div id="screen-start" class="card">
-      <h2>Welcome to the Manufacturing Personality Assessment</h2>
+      <h2>Welcome to the Culture Fit Assessment</h2>
       <p style="margin: 20px 0; line-height: 1.6;">
-        This scientifically-validated assessment evaluates personality traits that predict success in heavy manufacturing environments. 
-        The assessment takes approximately 8-12 minutes to complete.
+        This scientifically validated assessment evaluates personality traits that predict cultural fit and potential success within our organization.
+        The assessment takes approximately 8–12 minutes to complete.
       </p>
       <div style="text-align: center; margin-top: 30px;">
         <button class="btn btn-primary" onclick="startAssessment()">Begin Assessment</button>
@@ -630,6 +632,11 @@
     <!-- Candidate Info Screen -->
     <div id="screen-info" class="card hidden">
       <h2>Candidate Information</h2>
+      <!-- Short disclaimer displayed before the candidate begins -->
+      <p class="disclaimer" style="font-size: 0.9rem; color: #6b7280; font-style: italic; margin-bottom: 15px;">
+        This assessment is designed to evaluate your potential fit within our company culture. Your responses will be kept confidential
+        and used solely for recruitment purposes. By proceeding, you consent to our use of this information for hiring decisions.
+      </p>
       <form id="candidate-form">
         <label style="font-weight: 600; color: #4a5568;">Full Name *</label>
         <input type="text" id="candidate-name" required placeholder="Enter your full name">
@@ -649,7 +656,8 @@
           <option value="other">Other</option>
         </select>
         
-        <label style="font-weight: 600; color: #4a5568;">Years of Manufacturing Experience</label>
+        <!-- Updated to general experience instead of manufacturing-specific -->
+        <label style="font-weight: 600; color: #4a5568;">Years of Experience</label>
         <select id="candidate-experience">
           <option value="">Select experience...</option>
           <option value="0-1">Less than 1 year</option>
@@ -720,7 +728,7 @@
     <div id="screen-thankyou" class="card hidden">
       <h2 style="text-align: center; color: #48bb78;">✓ Assessment Complete</h2>
       <p style="text-align: center; margin: 20px 0; font-size: 1.2rem;">
-        Thank you for completing the Manufacturing Personality Assessment.
+        Thank you for completing the Culture Fit Assessment.
       </p>
       <p style="text-align: center; color: #718096;">
         Your responses have been recorded. The hiring team will review your results as part of the selection process.
@@ -730,26 +738,44 @@
       </div>
     </div>
     
-<!-- Admin Login -->
-<div id="screen-admin-login" class="card hidden">
-  <h2>Administrator Login</h2>
-  <p style="margin-bottom: 20px;">Enter your admin email and password:</p>
-
-  <input type="email" id="admin-email" placeholder="Email">
-  <input type="password" id="admin-password" placeholder="Password">
-
-  <div style="text-align: center;">
-    <button class="btn btn-secondary" onclick="showStart()">Cancel</button>
-    <button class="btn btn-primary" onclick="adminSignIn()">Sign In</button>
-  </div>
-
-  <p id="admin-login-msg" style="margin-top:12px; color:#4a5568;"></p>
-</div>
-
+    <!-- Admin Login -->
+    <div id="screen-admin-login" class="card hidden">
+      <h2>Administrator Login</h2>
+      <p style="margin-bottom: 20px;">Enter your admin email and password:</p>
+      <input id="admin-email" placeholder="Email" />
+      <input id="admin-password" type="password" placeholder="Password" />
+      <div style="text-align: center;">
+        <button class="btn btn-secondary" onclick="showStart()">Cancel</button>
+        <button class="btn btn-primary" onclick="adminSignIn()">Sign In</button>
+      </div>
+      <p id="admin-login-msg"></p>
+    </div>
     
     <!-- Admin Dashboard -->
     <div id="screen-dashboard" class="card hidden">
       <h2>Candidate Results Dashboard</h2>
+      <!-- Admin Tools -->
+      <div class="card">
+        <h3>Create Campaign</h3>
+        <input id="campaign-name" placeholder="Campaign name" />
+        <button class="btn btn-primary" onclick="createCampaign()">Save Campaign</button>
+        <p id="campaign-msg"></p>
+      </div>
+
+      <div class="card">
+        <h3>Invite Candidate</h3>
+        <input id="cand-email" placeholder="Candidate email" />
+        <select id="cand-campaign"></select>
+        <button class="btn btn-primary" onclick="inviteCandidate()">Send Invite</button>
+        <p id="invite-msg"></p>
+      </div>
+
+      <div class="card">
+        <h3>View Results by Campaign</h3>
+        <select id="results-campaign" onchange="loadResultsByCampaign()"></select>
+      </div>
+      <div id="results-table"></div>
+
       <div id="dashboard-content"></div>
       <div style="text-align: center; margin-top: 30px;">
         <button class="btn btn-secondary" onclick="exportResults()">Export All Results (CSV)</button>
@@ -767,14 +793,6 @@
       </div>
     </div>
   </div>
-function adminLogin() {
-  const password = document.getElementById('admin-password').value;
-  if (password === 'mpa50admin') {  // Change this password
-    showDashboard();
-  } else {
-    alert('Incorrect password');
-  }
-}
 
   <script>
     // MPA-50 Questions (exact from the scientifically-backed assessment)
@@ -993,9 +1011,10 @@ function adminLogin() {
     // Initialize Supabase client. Insert your own Supabase project URL and anon key
     // here. These placeholders must be replaced with actual values from your
     // Supabase project settings (Settings → API → Project URL and Anon Key).
-    const SUPABASE_URL = 'https://lduozjujlhoalahistnq.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkdW96anVqbGhvYWxhaGlzdG5xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY1Nzk4MjYsImV4cCI6MjA3MjE1NTgyNn0.0xuC9nt8I7vlQaKc81hGZToshWvS35fumKvdFQgeh2I';
+    const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+    const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabase = supabaseClient;
     let currentPage = 0;
     let responses = {};
     let candidateData = {};
@@ -1244,11 +1263,7 @@ function adminLogin() {
       }
 
       saveResult(result);
-      // Call Edge Function to send admin email
-await supabase.functions.invoke('on_complete', {
-  body: { candidate: candidateData, scores }
-});
-
+      
       // Show thank you screen
       hideAllScreens();
       document.getElementById('screen-thankyou').classList.remove('hidden');
@@ -1415,43 +1430,11 @@ await supabase.functions.invoke('on_complete', {
 
     // Admin functions
     function showAdminLogin() {
-      async function adminSignIn() {
-  const email = document.getElementById('admin-email').value.trim();
-  const password = document.getElementById('admin-password').value;
-
-  // Basic front-end validation
-  if (!email || !password) {
-    document.getElementById('admin-login-msg').textContent = 'Please enter both email and password.';
-    return;
-  }
-
-  // IMPORTANT: use your initialized supabase client name: supabaseClient
-  const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
-
-  // Show result to the user
-  document.getElementById('admin-login-msg').textContent = error ? error.message : 'Signed in';
-
-  // On success, go to the dashboard
-  if (!error) {
-    hideAllScreens();
-    document.getElementById('screen-dashboard').classList.remove('hidden');
-    // Optional: refresh dashboard content now that we’re authenticated
-    showDashboard();
-  }
-}
-
       hideAllScreens();
       document.getElementById('screen-admin-login').classList.remove('hidden');
     }
 
-    function adminLogin() {
-      const password = document.getElementById('admin-password').value;
-      if (password === 'mpa50admin') {  // Change this password
-        showDashboard();
-      } else {
-        alert('Incorrect password');
-      }
-    }
+    // Removed old adminLogin function. Admins now sign in via Supabase using adminSignIn().
 
     function showDashboard() {
       hideAllScreens();
@@ -2176,28 +2159,166 @@ await supabase.functions.invoke('on_complete', {
       }
     }
 
+    // ----------------------------
+    // Supabase Admin Functions
+    // ----------------------------
+    async function adminSignIn() {
+      const email = document.getElementById('admin-email').value.trim();
+      const password = document.getElementById('admin-password').value;
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const msgEl = document.getElementById('admin-login-msg');
+      if (msgEl) msgEl.textContent = error ? error.message : 'Signed in';
+      if (!error) {
+        await loadCampaigns();
+        await loadResultsByCampaign();
+        const loginScreen = document.getElementById('screen-admin-login');
+        const dashboardScreen = document.getElementById('screen-dashboard');
+        if (loginScreen) loginScreen.classList.add('hidden');
+        if (dashboardScreen) dashboardScreen.classList.remove('hidden');
+      }
+    }
+
+    async function createCampaign() {
+      const nameInput = document.getElementById('campaign-name');
+      const msgEl = document.getElementById('campaign-msg');
+      const name = nameInput ? nameInput.value.trim() : '';
+      if (!name) {
+        if (msgEl) msgEl.textContent = 'Please enter a name';
+        return;
+      }
+      const { error } = await supabase.from('campaigns').insert({ name });
+      if (msgEl) msgEl.textContent = error ? error.message : 'Campaign created';
+      if (!error) await loadCampaigns();
+    }
+
+    async function loadCampaigns() {
+      const { data, error } = await supabase.from('campaigns').select('*').order('created_at', { ascending: false });
+      const selInvite = document.getElementById('cand-campaign');
+      const selResults = document.getElementById('results-campaign');
+      if (selInvite) selInvite.innerHTML = '<option value="">Choose campaign…</option>';
+      if (selResults) selResults.innerHTML = '<option value="">All campaigns</option>';
+      if (!error && data) {
+        data.forEach(c => {
+          if (selInvite) {
+            const opt1 = document.createElement('option');
+            opt1.value = c.id;
+            opt1.textContent = c.name;
+            selInvite.appendChild(opt1);
+          }
+          if (selResults) {
+            const opt2 = document.createElement('option');
+            opt2.value = c.id;
+            opt2.textContent = c.name;
+            selResults.appendChild(opt2);
+          }
+        });
+      }
+    }
+
+    async function inviteCandidate() {
+      const emailInput = document.getElementById('cand-email');
+      const campaignSelect = document.getElementById('cand-campaign');
+      const msgEl = document.getElementById('invite-msg');
+      const email = emailInput ? emailInput.value.trim() : '';
+      const campaignId = campaignSelect ? campaignSelect.value : '';
+      if (!email || !campaignId) {
+        if (msgEl) msgEl.textContent = 'Enter email and select a campaign';
+        return;
+      }
+      const token = crypto.randomUUID();
+      const { error } = await supabase.from('candidates').insert({
+        email,
+        token,
+        campaign_id: Number(campaignId),
+        completed: false
+      });
+      if (error) {
+        if (msgEl) msgEl.textContent = error.message;
+        return;
+      }
+      // Optionally hit Zapier webhook to send invite
+      try {
+        await fetch('YOUR_ZAPIER_WEBHOOK_URL', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'invite',
+            email,
+            link: `${window.location.origin}/?token=${token}&campaign=${campaignId}`
+          })
+        });
+      } catch (e) {
+        // ignore errors from webhook
+      }
+      if (msgEl) msgEl.textContent = 'Invite sent';
+    }
+
+    async function loadResultsByCampaign() {
+      const sel = document.getElementById('results-campaign');
+      const campaignId = sel && sel.value ? Number(sel.value) : null;
+      let query = supabase.from('candidates').select('*').order('created_at', { ascending: false });
+      if (campaignId) query = query.eq('campaign_id', campaignId);
+      const { data, error } = await query;
+      const tableContainer = document.getElementById('results-table');
+      if (!tableContainer) return;
+      if (error) {
+        tableContainer.textContent = error.message;
+        return;
+      }
+      const rows = (data || []).map(r =>
+        `<tr><td>${r.email || 'N/A'}</td><td>${r.completed ? 'Yes' : 'No'}</td><td>${r.campaign_id || ''}</td></tr>`
+      ).join('');
+      tableContainer.innerHTML = '<table><thead><tr><th>Email</th><th>Completed</th><th>Campaign</th></tr></thead><tbody>' + rows + '</tbody></table>';
+    }
+
+    async function resendInvite(email, token) {
+      await fetch('YOUR_ZAPIER_WEBHOOK_URL', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'resend', email, link: `${window.location.origin}/?token=${token}` })
+      });
+    }
+
+    // Override the original showDashboard to use Supabase data instead of local storage.
+    function showDashboard() {
+      hideAllScreens();
+      const dash = document.getElementById('screen-dashboard');
+      if (dash) dash.classList.remove('hidden');
+      // Populate campaigns and load results from Supabase
+      loadCampaigns();
+      loadResultsByCampaign();
+    }
+
     // Initialize on load
     document.addEventListener('DOMContentLoaded', init);
 
     // Expose key functions globally so inline onclick handlers work correctly.
     // Without this assignment, some browsers may not find the functions in
     // the global scope when called via inline attributes on buttons.
-Object.assign(window, {
-  startAssessment,
-  showCandidateInfo,
-  showStart,
-  beginAssessment,
-  previousPage,
-  nextPage,
-  submitAssessment,
-  showAdminLogin,
-  adminSignIn,         // <-- add this
-  showDashboard,
-  viewReport,
-  exportResults,
-  clearAllData
-});
-
+    // Expose functions globally so inline onclick attributes can reference them.
+    // Removed old adminLogin reference (no longer used) and added new functions
+    // for admin operations and campaign management.
+    Object.assign(window, {
+      startAssessment,
+      showCandidateInfo,
+      showStart,
+      beginAssessment,
+      previousPage,
+      nextPage,
+      submitAssessment,
+      showAdminLogin,
+      showDashboard,
+      viewReport,
+      exportResults,
+      clearAllData,
+      // new admin and campaign functions
+      adminSignIn,
+      createCampaign,
+      loadCampaigns,
+      inviteCandidate,
+      loadResultsByCampaign,
+      resendInvite
+    });
 
     // Ensure the start screen is visible on initial load. In some cases the
     // start card could remain hidden when reloading after completing an
