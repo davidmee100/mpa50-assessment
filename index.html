@@ -1230,7 +1230,11 @@
       }
 
       saveResult(result);
-      
+      // Call Edge Function to send admin email
+await supabase.functions.invoke('on_complete', {
+  body: { candidate: candidateData, scores }
+});
+
       // Show thank you screen
       hideAllScreens();
       document.getElementById('screen-thankyou').classList.remove('hidden');
