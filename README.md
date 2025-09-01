@@ -1,0 +1,1 @@
+This directory contains SQL migrations and serverless functions for Supabase.
