@@ -2165,7 +2165,7 @@ const supabase = supabaseClient;
     async function adminSignIn() {
       const email = document.getElementById('admin-email').value.trim();
       const password = document.getElementById('admin-password').value;
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { error } = await supabase.auth.signIn({ email, password });
       const msgEl = document.getElementById('admin-login-msg');
       if (msgEl) msgEl.textContent = error ? error.message : 'Signed in';
       if (!error) {
